@@ -7,7 +7,9 @@
   $path_info = $_SERVER['PATH_INFO'] ?? '/';
 
   $path = explode('/', trim($path_info, '/'));
-  $resource = $path[1] ?? null;
+  $resource = $path[0] ?? null;
+
+  $id = isset($path[1]) ? $path[1] : null;
 
   if($resource !== 'products') {
     response(404, "Resource Not Found");
@@ -34,7 +36,7 @@
         if ($id) updateProduct($pdo, $id);
         break;
 
-      case 'DELETE';
+      case 'DELETE':
       if($id) deleteProduct($pdo, $id);
       break;
       
@@ -56,7 +58,7 @@
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if($product) {
-      respones(200, "Success", $product);
+      response(200, "Success", $product);
     } else {
       response(404, "Products Not Found");
     }
@@ -70,7 +72,7 @@
 
   
   $stmt = $pdo->prepare("INSERT INTO products (name, price) VALUES (?, ?)");
-    if($stmt->execute([$input['name'], $input['price'] ,$id])){
+    if($stmt->execute([$input['name'], $input['price']])){
       response(201, "Product created Sucessfully" );
     }
 }
@@ -78,21 +80,23 @@
 function updateProduct($pdo, $id) {
   $input =json_decode(file_get_contents("php://input"), true);
   $stmt = $pdo->prepare("UPDATE products SET name = ?, price = ? WHERE id = ?");
-  if ($stmt->excute([$input['name'], $input['price'], $id])) {
+  if ($stmt->execute([$input['name'], $input['price'], $id])) {
     response(200, "Product updated Successfully");
   }
 }
 
-function response($status, $message, $data = null) {
-  http_response_code($status);
-  $resp = [
-    'status' => $status,
-    'message' => $message
-  ];
-  if ($data !== null) {
-    $resp['data'] = $data;
+  function deleteProduct($pdo, $id) {
+    $stmt =$pdo->prepare("DELETE FROM products WHERE id = ?");
+    if($stmt->execute([$id])){
+    response(200, "Product Deleted Successfully");
+
+    } 
   }
-  echo json_encode($resp);
-  exit;
-}
+
+  function response($status, $message, $data = null){
+    http_response_code($status);
+    echo json_encode(["status" => $status, "message" => $message, "data" => $data]);
+    exit;
+  }
+
 ?>
